@@ -5,7 +5,7 @@
 #include "Delay.h"
 #include "OLED.h"
 #include "MPU6050.h"
-
+#include "Kalman.h"
 
 
 float pitch = 0, roll = 0, yaw = 0;
@@ -20,8 +20,8 @@ void MPU6050(void *pvParameters){
 	float pitch_gyro, roll_gyro;
 	uint32_t T_last = 0, T_now = 0;
 
-	Kalman_t* pitch_kalman = Kalman_Init();
-	Kalman_t* roll_kalman = Kalman_Init();
+	Kalman_t* pitch_kalman = Kalman_Init(0.001, 0.003);
+	Kalman_t* roll_kalman = Kalman_Init(0.001, 0.003);
 
 	while(1){
 		
@@ -47,11 +47,11 @@ void MPU6050(void *pvParameters){
 		yaw_angle += (float)GZ * 2000 / 32767 * dt;
 		yaw = yaw_angle;
 		
-
+		
 		taskEXIT_CRITICAL();		//保护结束	 计算结束
 		
 		
-		Delay_ms(5);
+		Delay_ms(4);
 	}
 }
 
