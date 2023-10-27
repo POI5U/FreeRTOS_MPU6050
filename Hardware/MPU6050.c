@@ -7,10 +7,10 @@
 
 
 static void MPU6050_delayms(uint32_t xms) {
-	uint32_t i = 0;
+	
     volatile uint32_t ticks = xms * 72000;  // 72 MHz / 1000 (ms)
 	
-    for (i = 0; i < xms * 72000; i++) {
+    for (uint32_t i = 0; i < xms * 72000; i++) {
         __NOP();
     }
 }
@@ -86,21 +86,16 @@ static int16_t errorX = 0, errorY = 0, errorZ = 0;
 
 void MPU6050_Init(void)
 {
-	int16_t GX = 0, GY = 0, GZ = 0;
-	int i = 0;
-	I2C_InitTypeDef I2C_InitStructure;
-	GPIO_InitTypeDef GPIO_InitStructure;
-	
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	
-	
+	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
-	
+	I2C_InitTypeDef I2C_InitStructure;
 	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
 	I2C_InitStructure.I2C_ClockSpeed = 50000;
 	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
@@ -119,10 +114,9 @@ void MPU6050_Init(void)
 	MPU6050_WriteReg(MPU6050_ACCEL_CONFIG, 0x00);		// max: 2g
 	
 	// error -> 0
-	
+	int16_t GX, GY, GZ;
 	MPU6050_delayms(30);
-	
-	for(i = 0; i < 10; i++){
+	for(int i = 0; i < 10; i++){
 		MUP6050_getG(&GX, &GY, &GZ);
 		errorX += GX;
 		errorY += GY;
@@ -170,60 +164,7 @@ void MPU6050_GetData(int16_t *AccX, int16_t *AccY, int16_t *AccZ,
 
 
 
-// 数据全取默认值
-Kalman_t* Kalman_Init(void){
-
-	Kalman_t* port = (Kalman_t*)malloc(sizeof(Kalman_t));
-
-	port->Q_angle = 0.001;	//acc   角度数据置信度，角度噪声的协方差
-	port->Q_gyro = 0.003;	//gyro  角速度数据置信度，角速度噪声的协方差
-	port->R_angle = 0.5;
-	port->Q_bias = 0;
-	port->K_0 = 0;
-	port->K_1 = 0;
-	
-	port->PP[0][0] = 1;
-	port->PP[1][0] = 0;
-	port->PP[0][1] = 0;
-	port->PP[1][1] = 1;
-
-	port->Angle_kalman = 0;
-
-	return port;
-}
-
-
-
-
-/*
-* 传入角度 acc(du) 和角速度 gyro(du/s) dt:每次调用之间的时间
-* 返回滤波获得角度
-*/
-float Kalman_Cal(Kalman_t* p, float acc, float gyro, float dt){
-
-	p->Angle_kalman += (gyro - p->Q_bias) * dt;
-	
-	p->PP[0][0] = p->PP[0][0] + p->Q_angle - (p->PP[0][1] + p->PP[1][0])*dt;
-	p->PP[0][1] = p->PP[0][1] - p->PP[1][1]*dt;
-	p->PP[1][0] = p->PP[1][0] - p->PP[1][1]*dt;
-	p->PP[1][1] = p->PP[1][1] + p->Q_gyro;
-	
-	p->K_0 = p->PP[0][0] / (p->PP[0][0] + p->R_angle);
-	p->K_1 = p->PP[1][0] / (p->PP[0][0] + p->R_angle);
-	
-	p->Angle_kalman = p->Angle_kalman + p->K_0 * (acc - p->Angle_kalman);
-	p->Q_bias = p->Q_bias + p->K_1 * (acc - p->Angle_kalman);
-	
-	p->PP[0][0] = p->PP[0][0] - p->K_0 * p->PP[0][0];
-	p->PP[0][1] = p->PP[0][1] - p->K_0 * p->PP[0][1];
-	p->PP[1][0] = p->PP[1][0] - p->K_1 * p->PP[0][0];
-	p->PP[1][1] = p->PP[1][1] - p->K_1 * p->PP[0][1];
-	
-	return p->Angle_kalman;
-}
-
-
-//		main.c FreeRTOS  示例代码 (任务形式)
+//		main.c FreeRTOS  脢戮脌媒麓煤脗毛 (脠脦脦帽脨脦脢陆)
 /*
 
 
@@ -242,22 +183,22 @@ void MPU6050(void *pvParameters){
 
 	while(1){
 		
-		//原始数据读取与预处理（不保护）
+		//脭颅脢录脢媒戮脻露脕脠隆脫毛脭陇麓娄脌铆拢篓虏禄卤拢禄陇拢漏
 		MPU6050_GetData(&AX, &AY, &AZ, &GX, &GY, &GZ);
 		pitch_angle = atan2(AX, AZ) * 57.29578;
 		roll_angle = atan2(AY, AZ) * 57.29578;
 		pitch_gyro = (float)GY * 2000 / 32767;
 		roll_gyro  = (float)GX * 2000 / 32767;
 		
-		taskENTER_CRITICAL();		//保护开启  保护时间强相关任务
+		taskENTER_CRITICAL();		//卤拢禄陇驴陋脝么  卤拢禄陇脢卤录盲脟驴脧脿鹿脴脠脦脦帽
 		
-		// 获取并更新 dt
+		// 禄帽脠隆虏垄赂眉脨脗 dt
 		T_now = xTaskGetTickCount();
 		dt = (float)(T_now - T_last) * 0.001;
 		T_last = T_now;
 
 
-		//进行角度滤波计算
+		//陆酶脨脨陆脟露脠脗脣虏篓录脝脣茫
 		pitch = Kalman_Cal(pitch_kalman, pitch_angle, pitch_gyro, dt);
 		roll = Kalman_Cal(roll_kalman, roll_angle, roll_gyro, dt);
 
@@ -265,7 +206,7 @@ void MPU6050(void *pvParameters){
 		yaw = yaw_angle;
 		
 
-		taskEXIT_CRITICAL();		//保护结束	 计算结束
+		taskEXIT_CRITICAL();		//卤拢禄陇陆谩脢酶	 录脝脣茫陆谩脢酶
 		
 		
 		Delay_ms(5);
